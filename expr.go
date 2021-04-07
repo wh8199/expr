@@ -428,73 +428,102 @@ func (es *exprStack) Pop() Expr {
 	}
 }
 
+const (
+	parenAllowed = iota
+	parenExpected
+	parenForbidden
+)
+
 func Parse(input string, vars map[string]Var, funcs map[string]Func) (Expr, error) {
 	os := stringStack{}
 	es := exprStack{}
 
-	tokens, err := tokenize([]rune(input))
-	if err != nil {
+	paren := parenAllowed
+	if tokens, err := tokenize([]rune(input)); err != nil {
 		return nil, err
-	}
-
-	for _, token := range tokens {
-		if token == "(" {
-			os.Push("(")
-		} else if token == ")" {
-			for len(os) > 0 && os.Peek() != "(" {
-				expr, err := bind(os.Pop(), funcs, &es)
-				if err != nil {
-					return nil, err
+	} else {
+		for _, token := range tokens {
+			parenNext := parenAllowed
+			if token == "(" {
+				if paren == parenExpected {
+					os.Push("{")
+				} else if paren == parenAllowed {
+					os.Push("(")
+				} else {
+					return nil, ErrBadCall
 				}
-
+			} else if paren == parenExpected {
+				return nil, ErrBadCall
+			} else if token == ")" {
+				for len(os) > 0 && os.Peek() != "(" && os.Peek() != "{" {
+					if expr, err := bind(os.Pop(), funcs, &es); err != nil {
+						return nil, err
+					} else {
+						es.Push(expr)
+					}
+				}
+				if len(os) == 0 {
+					return nil, ErrParen
+				}
+				if open := os.Pop(); open == "{" {
+					f := funcs[os.Pop()]
+					args := list(es.Pop())
+					es.Push(&FuncContext{f: f, Vars: vars, Args: args})
+				}
+				parenNext = parenForbidden
+			} else if n, err := strconv.ParseFloat(token, 64); err == nil {
+				// Number
+				es.Push(&constExpr{value: Num(n)})
+				parenNext = parenForbidden
+			} else if _, ok := funcs[token]; ok {
+				// Function
+				os.Push(token)
+				parenNext = parenExpected
+			} else if op, ok := ops[token]; ok {
+				o2 := os.Peek()
+				for ops[o2] != 0 && ((isLeftAssoc(op) && op >= ops[o2]) || op > ops[o2]) {
+					if expr, err := bind(o2, funcs, &es); err != nil {
+						return nil, err
+					} else {
+						es.Push(expr)
+					}
+					os.Pop()
+					o2 = os.Peek()
+				}
+				os.Push(token)
+			} else {
+				// Variable
+				if v, ok := vars[token]; ok {
+					es.Push(v)
+				} else {
+					v = NewVar(0)
+					vars[token] = v
+					es.Push(v)
+				}
+				parenNext = parenForbidden
+			}
+			paren = parenNext
+		}
+		if paren == parenExpected {
+			return nil, ErrBadCall
+		}
+		for len(os) > 0 {
+			op := os.Pop()
+			if op == "(" || op == ")" {
+				return nil, ErrParen
+			}
+			if expr, err := bind(op, funcs, &es); err != nil {
+				return nil, err
+			} else {
 				es.Push(expr)
 			}
-		} else if n, err := strconv.ParseFloat(token, 64); err == nil {
-			es.Push(&constExpr{value: Num(n)})
-		} else if _, ok := funcs[token]; ok {
-			os.Push(token)
-		} else if op, ok := ops[token]; ok {
-			o2 := os.Peek()
-			for ops[o2] != 0 && ((isLeftAssoc(op) && op >= ops[o2]) || op > ops[o2]) {
-				if expr, err := bind(o2, funcs, &es); err != nil {
-					return nil, err
-				} else {
-					es.Push(expr)
-				}
-				os.Pop()
-				o2 = os.Peek()
-			}
-			os.Push(token)
+		}
+		if len(es) == 0 {
+			return &constExpr{}, nil
 		} else {
-			// Variable
-			if v, ok := vars[token]; ok {
-				es.Push(v)
-			} else {
-				v = NewVar(0)
-				vars[token] = v
-				es.Push(v)
-			}
+			e := es.Pop()
+			return e, nil
 		}
-	}
-
-	for len(os) > 0 {
-		op := os.Pop()
-		if op == "(" || op == ")" {
-			return nil, ErrParen
-		}
-
-		if expr, err := bind(op, funcs, &es); err != nil {
-			return nil, err
-		} else {
-			es.Push(expr)
-		}
-	}
-
-	if len(es) == 0 {
-		return &constExpr{}, nil
-	} else {
-		e := es.Pop()
-		return e, nil
 	}
 }
 
