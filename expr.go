@@ -280,6 +280,7 @@ func tokenize(input []rune) (tokens []string, err error) {
 			if expected&tokNumber == 0 {
 				return nil, ErrUnexpectedNumber
 			}
+
 			expected = tokOp | tokClose
 			for (c == '.' || unicode.IsNumber(c)) && pos < len(input) {
 				tok = append(tok, input[pos])
@@ -294,6 +295,32 @@ func tokenize(input []rune) (tokens []string, err error) {
 			if expected&tokWord == 0 {
 				return nil, ErrUnexpectedIdentifier
 			}
+			expected = tokOp | tokOpen | tokClose
+			for (unicode.IsLetter(c) || unicode.IsNumber(c) || c == '_') && pos < len(input) {
+				tok = append(tok, input[pos])
+				pos++
+				if pos < len(input) {
+					c = input[pos]
+				} else {
+					c = 0
+				}
+			}
+		} else if c == '@' {
+			if expected&tokWord == 0 {
+				return nil, ErrUnexpectedIdentifier
+			}
+
+			if pos+2 >= len(input) {
+				return nil, ErrUnexpectedIdentifier
+			}
+
+			if input[pos+1] != '.' {
+				return nil, ErrUnexpectedIdentifier
+			}
+
+			c = input[pos+2]
+			pos = pos + 2
+
 			expected = tokOp | tokOpen | tokClose
 			for (unicode.IsLetter(c) || unicode.IsNumber(c) || c == '_') && pos < len(input) {
 				tok = append(tok, input[pos])
