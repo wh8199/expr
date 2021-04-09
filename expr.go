@@ -16,7 +16,7 @@ var (
 	ErrOperandMissing = errors.New("missing operand")
 )
 
-func Parse(input string) (*stringStack, error) {
+func Compile(input string) (*stringStack, error) {
 	operationStack := NewStack(0)
 	ret := NewStack(0)
 

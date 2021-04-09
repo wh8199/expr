@@ -29,11 +29,20 @@ const (
 )
 
 var ops = map[string]Operator{
-	"**": &PlusOperator{}, "*": &MultiplyOperator{}, "/": &DivideOperator{}, "%": &RemainderOperator{},
-	"+": &PlusOperator{}, "-": &MinusOperator{},
-	"<<": &ShiftLeftOperator{}, ">>": &ShiftRightOperator{},
-	//"<": lessThan, "<=": lessOrEquals, ">": greaterThan, ">=": greaterOrEquals,
-	//"==": equals, "!=": notEquals,
+	"**": &PlusOperator{},
+	"*":  &MultiplyOperator{},
+	"/":  &DivideOperator{},
+	"%":  &RemainderOperator{},
+	"+":  &PlusOperator{},
+	"-":  &MinusOperator{},
+	"<<": &ShiftLeftOperator{},
+	">>": &ShiftRightOperator{},
+	"<":  &LessOperator{},
+	"<=": &LessThanOperator{},
+	">":  &MoreOperator{},
+	">=": &MoreThanOperator{},
+	"==": &EqualOperator{},
+	"!=": &NotEqualOperator{},
 	//"&&": logicalAnd, "||": logicalOr,
 }
 
@@ -276,4 +285,184 @@ func (s ShiftRightOperator) Cal(value ...string) (string, error) {
 	}
 
 	return strconv.FormatFloat(param1, 'g', -1, 64), nil
+}
+
+type LessOperator struct {
+	priority int
+}
+
+func (s LessOperator) GetPriority() int {
+	return s.priority
+}
+
+func (s LessOperator) Cal(value ...string) (string, error) {
+	if len(value) != 2 {
+		return "", LackParamError
+	}
+
+	param1, err := strconv.ParseFloat(value[0], 64)
+	if err != nil {
+		return "", err
+	}
+
+	param, err := strconv.ParseFloat(value[1], 64)
+	if err != nil {
+		return "", err
+	}
+
+	if param > param1 {
+		return "1", nil
+	} else {
+		return "0", nil
+	}
+}
+
+type LessThanOperator struct {
+	priority int
+}
+
+func (s LessThanOperator) GetPriority() int {
+	return s.priority
+}
+
+func (s LessThanOperator) Cal(value ...string) (string, error) {
+	if len(value) != 2 {
+		return "", LackParamError
+	}
+
+	param1, err := strconv.ParseFloat(value[0], 64)
+	if err != nil {
+		return "", err
+	}
+
+	param, err := strconv.ParseFloat(value[1], 64)
+	if err != nil {
+		return "", err
+	}
+
+	if param >= param1 {
+		return "1", nil
+	} else {
+		return "0", nil
+	}
+}
+
+type MoreOperator struct {
+	priority int
+}
+
+func (s MoreOperator) GetPriority() int {
+	return s.priority
+}
+
+func (s MoreOperator) Cal(value ...string) (string, error) {
+	if len(value) != 2 {
+		return "", LackParamError
+	}
+
+	param1, err := strconv.ParseFloat(value[0], 64)
+	if err != nil {
+		return "", err
+	}
+
+	param, err := strconv.ParseFloat(value[1], 64)
+	if err != nil {
+		return "", err
+	}
+
+	if param < param1 {
+		return "1", nil
+	} else {
+		return "0", nil
+	}
+}
+
+type MoreThanOperator struct {
+	priority int
+}
+
+func (s MoreThanOperator) GetPriority() int {
+	return s.priority
+}
+
+func (s MoreThanOperator) Cal(value ...string) (string, error) {
+	if len(value) != 2 {
+		return "", LackParamError
+	}
+
+	param1, err := strconv.ParseFloat(value[0], 64)
+	if err != nil {
+		return "", err
+	}
+
+	param, err := strconv.ParseFloat(value[1], 64)
+	if err != nil {
+		return "", err
+	}
+
+	if param <= param1 {
+		return "1", nil
+	} else {
+		return "0", nil
+	}
+}
+
+type EqualOperator struct {
+	priority int
+}
+
+func (s EqualOperator) GetPriority() int {
+	return s.priority
+}
+
+func (s EqualOperator) Cal(value ...string) (string, error) {
+	if len(value) != 2 {
+		return "", LackParamError
+	}
+
+	param1, err := strconv.ParseFloat(value[0], 64)
+	if err != nil {
+		return "", err
+	}
+
+	param, err := strconv.ParseFloat(value[1], 64)
+	if err != nil {
+		return "", err
+	}
+
+	if param == param1 {
+		return "1", nil
+	} else {
+		return "0", nil
+	}
+}
+
+type NotEqualOperator struct {
+	priority int
+}
+
+func (s NotEqualOperator) GetPriority() int {
+	return s.priority
+}
+
+func (s NotEqualOperator) Cal(value ...string) (string, error) {
+	if len(value) != 2 {
+		return "", LackParamError
+	}
+
+	param1, err := strconv.ParseFloat(value[0], 64)
+	if err != nil {
+		return "", err
+	}
+
+	param, err := strconv.ParseFloat(value[1], 64)
+	if err != nil {
+		return "", err
+	}
+
+	if param != param1 {
+		return "1", nil
+	} else {
+		return "0", nil
+	}
 }

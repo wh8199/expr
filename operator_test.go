@@ -26,6 +26,24 @@ func TestShiftLeft(t *testing.T) {
 	t.Log(s.Cal("2", "4"))
 }
 
+func TestLess(t *testing.T) {
+	l := LessOperator{}
+
+	t.Log(l.Cal("1", "2"))
+}
+
+func TestLessThan(t *testing.T) {
+	lt := LessThanOperator{}
+
+	t.Log(lt.Cal("1", "0"))
+}
+
+func TestMoreThan(t *testing.T) {
+	mt := MoreThanOperator{}
+
+	t.Log(mt.Cal("1", "1"))
+}
+
 func BenchmarkAdd(b *testing.B) {
 	p := PlusOperator{}
 
