@@ -1,19 +1,19 @@
 package expr
 
 // Simple string stack implementation
-type stringStack struct {
+type Stack struct {
 	data []string
 }
 
-func (s *stringStack) Reset() {
+func (s *Stack) Reset() {
 	s.data = s.data[:0]
 }
 
-func (s *stringStack) Push(str string) {
+func (s *Stack) Push(str string) {
 	s.data = append(s.data, str)
 }
 
-func (ss *stringStack) Peek() string {
+func (ss *Stack) Peek() string {
 	if len(ss.data) == 0 {
 		return ""
 	}
@@ -21,7 +21,7 @@ func (ss *stringStack) Peek() string {
 	return ss.data[len(ss.data)-1]
 }
 
-func (ss *stringStack) Pop() string {
+func (ss *Stack) Pop() string {
 	if len(ss.data) == 0 {
 		return ""
 	}
@@ -31,7 +31,7 @@ func (ss *stringStack) Pop() string {
 	return ret
 }
 
-func (ss *stringStack) PopLeft() string {
+func (ss *Stack) PopLeft() string {
 	if len(ss.data) == 0 {
 		return ""
 	}
@@ -41,23 +41,23 @@ func (ss *stringStack) PopLeft() string {
 	return ret
 }
 
-func (ss *stringStack) IsEmpty() bool {
+func (ss *Stack) IsEmpty() bool {
 	return len(ss.data) == 0
 }
 
-func (ss *stringStack) Length() int {
+func (ss *Stack) Length() int {
 	return len(ss.data)
 }
 
-func NewStack(cap int) *stringStack {
+func NewStack(cap int) *Stack {
 	if cap <= 0 {
-		return &stringStack{
+		return &Stack{
 			data: []string{},
 		}
 	}
 
 	data := make([]string, 0, cap)
-	return &stringStack{
+	return &Stack{
 		data: data,
 	}
 }

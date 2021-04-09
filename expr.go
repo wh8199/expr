@@ -16,7 +16,7 @@ var (
 	ErrOperandMissing = errors.New("missing operand")
 )
 
-func Compile(input string) (*stringStack, error) {
+func Compile(input string) (*Stack, error) {
 	operationStack := NewStack(0)
 	ret := NewStack(0)
 
@@ -55,7 +55,7 @@ func Compile(input string) (*stringStack, error) {
 	return ret, nil
 }
 
-func Run(stack *stringStack, vars map[string]string) (string, error) {
+func Run(stack *Stack, vars map[string]string) (string, error) {
 	doubleStack := NewStack(stack.Length())
 
 	for !stack.IsEmpty() {
