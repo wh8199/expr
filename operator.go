@@ -6,43 +6,68 @@ import (
 )
 
 const (
-	power = iota + 1
-	multiply
-	divide
-	remainder
+	power     = 8
+	multiply  = 8
+	divide    = 8
+	remainder = 8
 
-	plus
-	minus
+	plus  = 7
+	minus = 7
 
-	shl
-	shr
+	shl = 6
+	shr = 6
 
-	lessThan
-	lessOrEquals
-	greaterThan
-	greaterOrEquals
-	equals
-	notEquals
-
-	logicalAnd
-	logicalOr
+	lessThan        = 5
+	lessOrEquals    = 5
+	greaterThan     = 5
+	greaterOrEquals = 5
+	equals          = 5
+	notEquals       = 5
 )
 
 var ops = map[string]Operator{
-	"**": &PlusOperator{},
-	"*":  &MultiplyOperator{},
-	"/":  &DivideOperator{},
-	"%":  &RemainderOperator{},
-	"+":  &PlusOperator{},
-	"-":  &MinusOperator{},
-	"<<": &ShiftLeftOperator{},
-	">>": &ShiftRightOperator{},
-	"<":  &LessOperator{},
-	"<=": &LessThanOperator{},
-	">":  &MoreOperator{},
-	">=": &MoreThanOperator{},
-	"==": &EqualOperator{},
-	"!=": &NotEqualOperator{},
+	"**": &PlusOperator{
+		priority: power,
+	},
+	"*": &MultiplyOperator{
+		priority: multiply,
+	},
+	"/": &DivideOperator{
+		priority: divide,
+	},
+	"%": &RemainderOperator{
+		priority: remainder,
+	},
+	"+": &PlusOperator{
+		priority: plus,
+	},
+	"-": &MinusOperator{
+		priority: minus,
+	},
+	"<<": &ShiftLeftOperator{
+		priority: shl,
+	},
+	">>": &ShiftRightOperator{
+		priority: shr,
+	},
+	"<": &LessOperator{
+		priority: lessThan,
+	},
+	"<=": &LessThanOperator{
+		priority: lessOrEquals,
+	},
+	">": &MoreOperator{
+		priority: greaterThan,
+	},
+	">=": &MoreThanOperator{
+		priority: greaterOrEquals,
+	},
+	"==": &EqualOperator{
+		priority: equals,
+	},
+	"!=": &NotEqualOperator{
+		priority: notEquals,
+	},
 	//"&&": logicalAnd, "||": logicalOr,
 }
 
