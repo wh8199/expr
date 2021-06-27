@@ -1,6 +1,8 @@
 package expr
 
-import "unicode"
+import (
+	"unicode"
+)
 
 const (
 	tokNumber = 1 << iota
@@ -12,45 +14,48 @@ const (
 
 func tokenize(input []rune) (tokens []string, err error) {
 	pos := 0
+	begin := 0
+
 	expected := tokOpen | tokNumber | tokWord
 	for pos < len(input) {
-		tok := []rune{}
 		c := input[pos]
 		if unicode.IsSpace(c) {
 			pos++
 			continue
 		}
 
-		if unicode.IsNumber(c) {
+		begin = pos
+
+		switch {
+		case unicode.IsNumber(c):
 			if expected&tokNumber == 0 {
 				return nil, ErrUnexpectedNumber
 			}
 
 			expected = tokOp | tokClose
 			for (c == '.' || unicode.IsNumber(c)) && pos < len(input) {
-				tok = append(tok, input[pos])
 				pos++
-				if pos < len(input) {
-					c = input[pos]
-				} else {
-					c = 0
+				if pos >= len(input) {
+					break
 				}
+
+				c = input[pos]
 			}
-		} else if unicode.IsLetter(c) {
+		case unicode.IsLetter(c):
 			if expected&tokWord == 0 {
 				return nil, ErrUnexpectedIdentifier
 			}
+
 			expected = tokOp | tokOpen | tokClose
 			for (unicode.IsLetter(c) || unicode.IsNumber(c) || c == '_') && pos < len(input) {
-				tok = append(tok, input[pos])
 				pos++
-				if pos < len(input) {
-					c = input[pos]
-				} else {
-					c = 0
+
+				if pos >= len(input) {
+					break
 				}
+				c = input[pos]
 			}
-		} else if c == '@' {
+		case c == '@':
 			if expected&tokWord == 0 {
 				return nil, ErrUnexpectedIdentifier
 			}
@@ -68,16 +73,13 @@ func tokenize(input []rune) (tokens []string, err error) {
 
 			expected = tokOp | tokOpen | tokClose
 			for (unicode.IsLetter(c) || unicode.IsNumber(c) || c == '_') && pos < len(input) {
-				tok = append(tok, input[pos])
 				pos++
-				if pos < len(input) {
-					c = input[pos]
-				} else {
-					c = 0
+				if pos >= len(input) {
+					break
 				}
+				c = input[pos]
 			}
-		} else if c == '(' || c == ')' {
-			tok = append(tok, c)
+		case c == '(' || c == ')':
 			pos++
 			if c == '(' && (expected&tokOpen) != 0 {
 				expected = tokNumber | tokWord | tokOpen | tokClose
@@ -86,39 +88,38 @@ func tokenize(input []rune) (tokens []string, err error) {
 			} else {
 				return nil, ErrParen
 			}
-		} else {
+		default:
 			if expected&tokOp == 0 {
 				if c != '-' && c != '^' && c != '!' {
 					return nil, ErrOperandMissing
 				}
-				tok = append(tok, c, 'u')
 				pos++
 			} else {
-				var lastOp string
+				lastOp := string(input[begin:pos])
 				for !unicode.IsLetter(c) && !unicode.IsNumber(c) && !unicode.IsSpace(c) &&
 					c != '_' && c != '(' && c != ')' && pos < len(input) {
-					if _, ok := ops[string(tok)+string(input[pos])]; ok {
-						tok = append(tok, input[pos])
-						lastOp = string(tok)
-					} else if lastOp == "" {
-						tok = append(tok, input[pos])
+
+					if _, ok := ops[string(input[begin:pos])+string(input[pos])]; ok {
+						lastOp = lastOp + string(input[pos])
 					} else {
 						break
 					}
+
 					pos++
-					if pos < len(input) {
-						c = input[pos]
-					} else {
-						c = 0
+					if pos >= len(input) {
+						break
 					}
+
+					c = input[pos]
 				}
+
 				if lastOp == "" {
 					return nil, ErrBadOp
 				}
 			}
 			expected = tokNumber | tokWord | tokOpen
 		}
-		tokens = append(tokens, string(tok))
+		tokens = append(tokens, string(input[begin:pos]))
 	}
 	return tokens, nil
 }
