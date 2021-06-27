@@ -32,15 +32,21 @@ func Compile(input string) (*Stack, error) {
 			for !operationStack.IsEmpty() && operationStack.Peek() != "(" {
 				ret.Push(operationStack.Pop())
 			}
-
 			operationStack.Pop()
 		} else if op, ok := ops[token]; ok {
 			o2 := operationStack.Peek()
-			for ops[o2] != nil && op.GetPriority() > ops[o2].GetPriority() {
-				ret.Push(token)
+
+			if o2 == "" || o2 == "(" || op.GetPriority() > ops[o2].GetPriority() {
+				operationStack.Push(token)
+				continue
+			}
+
+			for o2 != "" && o2 != "(" && op.GetPriority() <= ops[o2].GetPriority() {
+				ret.Push(o2)
 				operationStack.Pop()
 				o2 = operationStack.Peek()
 			}
+
 			operationStack.Push(token)
 		} else {
 			ret.Push(token)
@@ -63,13 +69,13 @@ func Run(stack *Stack, vars map[string]string) (string, error) {
 
 		if operation, ok := ops[token]; ok {
 			if doubleStack.Length() < 2 {
-				return "", fmt.Errorf("Not enough params to exec '%s'", token)
+				return "", fmt.Errorf("not enough params to exec '%s'", token)
 			}
 
 			param1 := doubleStack.Pop()
 			param2 := doubleStack.Pop()
 
-			ret, err := operation.Cal(param1, param2)
+			ret, err := operation.Cal(param2, param1)
 			if err != nil {
 				return "", err
 			}
