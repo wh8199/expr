@@ -5,7 +5,7 @@ import "testing"
 func TestAdd(t *testing.T) {
 	p := PlusOperator{}
 
-	t.Log(p.Cal("1", "2"))
+	t.Log(p.Cal(1, 2))
 }
 
 func TestRemainder(t *testing.T) {
@@ -50,7 +50,7 @@ func BenchmarkAdd(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		p.Cal()
+		p.Cal(1, 2)
 	}
 }
 

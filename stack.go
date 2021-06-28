@@ -2,28 +2,29 @@ package expr
 
 // Simple string stack implementation
 type Stack struct {
-	data []string
+	data  []interface{}
+	index int
 }
 
 func (s *Stack) Reset() {
 	s.data = s.data[:0]
 }
 
-func (s *Stack) Push(str string) {
+func (s *Stack) Push(str interface{}) {
 	s.data = append(s.data, str)
 }
 
-func (ss *Stack) Peek() string {
+func (ss *Stack) Peek() interface{} {
 	if len(ss.data) == 0 {
-		return ""
+		return nil
 	}
 
 	return ss.data[len(ss.data)-1]
 }
 
-func (ss *Stack) Pop() string {
+func (ss *Stack) Pop() interface{} {
 	if len(ss.data) == 0 {
-		return ""
+		return nil
 	}
 
 	ret := ss.data[len(ss.data)-1]
@@ -31,14 +32,28 @@ func (ss *Stack) Pop() string {
 	return ret
 }
 
-func (ss *Stack) PopLeft() string {
+func (ss *Stack) PopLeft() interface{} {
 	if len(ss.data) == 0 {
-		return ""
+		return nil
 	}
 
 	ret := ss.data[0]
 	ss.data = ss.data[1:]
 	return ret
+}
+
+func (ss *Stack) IndexPopLeft() interface{} {
+	if len(ss.data) == 0 || ss.index >= len(ss.data) {
+		return nil
+	}
+
+	ret := ss.data[ss.index]
+	ss.index++
+	return ret
+}
+
+func (ss *Stack) ResetIndex() {
+	ss.index = 0
 }
 
 func (ss *Stack) IsEmpty() bool {
@@ -52,11 +67,11 @@ func (ss *Stack) Length() int {
 func NewStack(cap int) *Stack {
 	if cap <= 0 {
 		return &Stack{
-			data: []string{},
+			data: []interface{}{},
 		}
 	}
 
-	data := make([]string, 0, cap)
+	data := make([]interface{}, 0, cap)
 	return &Stack{
 		data: data,
 	}

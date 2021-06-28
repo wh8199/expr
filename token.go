@@ -1,6 +1,7 @@
 package expr
 
 import (
+	"fmt"
 	"unicode"
 )
 
@@ -12,9 +13,11 @@ const (
 	tokClose
 )
 
-func tokenize(input []rune) (tokens []string, err error) {
+func tokenize(input []rune) (tokens []string, functionParams map[string][]interface{}, err error) {
 	pos := 0
 	begin := 0
+
+	functionParams = map[string][]interface{}{}
 
 	expected := tokOpen | tokNumber | tokWord
 	for pos < len(input) {
@@ -29,7 +32,7 @@ func tokenize(input []rune) (tokens []string, err error) {
 		switch {
 		case unicode.IsNumber(c):
 			if expected&tokNumber == 0 {
-				return nil, ErrUnexpectedNumber
+				return nil, nil, ErrUnexpectedNumber
 			}
 
 			expected = tokOp | tokClose
@@ -43,7 +46,7 @@ func tokenize(input []rune) (tokens []string, err error) {
 			}
 		case unicode.IsLetter(c):
 			if expected&tokWord == 0 {
-				return nil, ErrUnexpectedIdentifier
+				return nil, nil, ErrUnexpectedIdentifier
 			}
 
 			expected = tokOp | tokOpen | tokClose
@@ -53,19 +56,53 @@ func tokenize(input []rune) (tokens []string, err error) {
 				if pos >= len(input) {
 					break
 				}
+
 				c = input[pos]
+			}
+
+			if pos < len(input) && input[pos] == '(' {
+				funcionName := string(input[begin:pos])
+				pos++
+				params := []interface{}{}
+				// end of a function
+				if pos != ')' {
+					paramBegin := pos
+					for pos < len(input) {
+						if input[pos] == ',' {
+							params = append(params, string(input[paramBegin:pos]))
+							paramBegin = pos + 1
+						} else if input[pos] == ')' {
+							params = append(params, string(input[paramBegin:pos]))
+							pos++
+							break
+						}
+
+						pos++
+						if pos > len(input) {
+							return nil, nil, fmt.Errorf("EOF")
+						}
+					}
+				}
+
+				if functions[funcionName] == nil {
+					return nil, nil, fmt.Errorf("undefined function '%s'", funcionName)
+				}
+
+				tokens = append(tokens, funcionName)
+				functionParams[funcionName] = params
+				continue
 			}
 		case c == '@':
 			if expected&tokWord == 0 {
-				return nil, ErrUnexpectedIdentifier
+				return nil, nil, ErrUnexpectedIdentifier
 			}
 
 			if pos+2 >= len(input) {
-				return nil, ErrUnexpectedIdentifier
+				return nil, nil, ErrUnexpectedIdentifier
 			}
 
 			if input[pos+1] != '.' {
-				return nil, ErrUnexpectedIdentifier
+				return nil, nil, ErrUnexpectedIdentifier
 			}
 
 			c = input[pos+2]
@@ -86,12 +123,12 @@ func tokenize(input []rune) (tokens []string, err error) {
 			} else if c == ')' && (expected&tokClose) != 0 {
 				expected = tokOp | tokClose
 			} else {
-				return nil, ErrParen
+				return nil, nil, ErrParen
 			}
 		default:
 			if expected&tokOp == 0 {
 				if c != '-' && c != '^' && c != '!' {
-					return nil, ErrOperandMissing
+					return nil, nil, ErrOperandMissing
 				}
 				pos++
 			} else {
@@ -114,12 +151,12 @@ func tokenize(input []rune) (tokens []string, err error) {
 				}
 
 				if lastOp == "" {
-					return nil, ErrBadOp
+					return nil, nil, ErrBadOp
 				}
 			}
 			expected = tokNumber | tokWord | tokOpen
 		}
 		tokens = append(tokens, string(input[begin:pos]))
 	}
-	return tokens, nil
+	return tokens, functionParams, nil
 }

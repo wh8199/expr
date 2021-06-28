@@ -3,6 +3,7 @@ package expr
 import (
 	"errors"
 	"fmt"
+	"strconv"
 )
 
 var (
@@ -16,11 +17,11 @@ var (
 	ErrOperandMissing = errors.New("missing operand")
 )
 
-func Compile(input string) (*Stack, error) {
+func Compile(input string) (*Expression, error) {
 	operationStack := NewStack(0)
 	ret := NewStack(0)
 
-	tokens, err := tokenize([]rune(input))
+	tokens, functionParams, err := tokenize([]rune(input))
 	if err != nil {
 		return nil, err
 	}
@@ -36,12 +37,12 @@ func Compile(input string) (*Stack, error) {
 		} else if op, ok := ops[token]; ok {
 			o2 := operationStack.Peek()
 
-			if o2 == "" || o2 == "(" || op.GetPriority() > ops[o2].GetPriority() {
+			if o2 == nil || o2 == "(" || op.GetPriority() > ops[o2.(string)].GetPriority() {
 				operationStack.Push(token)
 				continue
 			}
 
-			for o2 != "" && o2 != "(" && op.GetPriority() <= ops[o2].GetPriority() {
+			for o2 != nil && o2 != "(" && op.GetPriority() <= ops[o2.(string)].GetPriority() {
 				ret.Push(o2)
 				operationStack.Pop()
 				o2 = operationStack.Peek()
@@ -58,35 +59,103 @@ func Compile(input string) (*Stack, error) {
 		ret.Push(op)
 	}
 
-	return ret, nil
+	return &Expression{
+		stack:          ret,
+		functionParams: functionParams,
+		params:         []interface{}{},
+	}, nil
 }
 
-func Run(stack *Stack, vars map[string]string) (string, error) {
-	doubleStack := NewStack(stack.Length())
+type Expression struct {
+	stack          *Stack
+	functionParams map[string][]interface{}
+	params         []interface{}
+}
 
-	for !stack.IsEmpty() {
-		token := stack.PopLeft()
+func (e *Expression) Run(vars map[string]interface{}) (interface{}, error) {
+	tokenStack := e.stack
+	functionParams := e.functionParams
 
-		if operation, ok := ops[token]; ok {
-			if doubleStack.Length() < 2 {
-				return "", fmt.Errorf("not enough params to exec '%s'", token)
+	tokenStack.ResetIndex()
+	e.params = e.params[:0]
+	if tokenStack == nil || functionParams == nil {
+		return "", fmt.Errorf("invalid expression")
+	}
+
+	for {
+		token := tokenStack.IndexPopLeft()
+		if token == nil {
+			break
+		}
+
+		switch token.(type) {
+		case string:
+			token := token.(string)
+			if operation, ok := ops[token]; ok {
+				if len(e.params) < 2 {
+					return "", fmt.Errorf("not enough params to exec '%s'", token)
+				}
+
+				var err error
+				p1 := e.params[0]
+				p2 := e.params[1]
+
+				e.params = e.params[2:]
+
+				switch p1.(type) {
+				case string:
+					p1, err = strconv.ParseFloat(p1.(string), 64)
+					if err != nil {
+						return nil, err
+					}
+				}
+
+				switch p2.(type) {
+				case string:
+					p2, err = strconv.ParseFloat(p2.(string), 64)
+					if err != nil {
+						return nil, err
+					}
+				}
+
+				ret, err := operation.Cal(1, 1)
+				if err != nil {
+					return nil, err
+				}
+
+				e.params = append(e.params, ret)
+			} else if value, ok := vars[token]; ok {
+				e.params = append(e.params, value)
+			} else if funcs, ok := functions[token]; ok {
+				rawParams := functionParams[token]
+				newParams := make([]interface{}, len(rawParams))
+				for index, rawParam := range rawParams {
+					switch rawParam.(type) {
+					case string:
+						p, err := strconv.ParseFloat(rawParam.(string), 64)
+						if err != nil {
+							return nil, err
+						}
+
+						newParams[index] = p
+					default:
+						newParams[index] = rawParam
+					}
+				}
+
+				result, err := funcs(newParams...)
+				if err != nil {
+					return nil, err
+				}
+				e.params = append(e.params, result)
+			} else {
+				e.params = append(e.params, token)
 			}
-
-			param1 := doubleStack.Pop()
-			param2 := doubleStack.Pop()
-
-			ret, err := operation.Cal(param2, param1)
-			if err != nil {
-				return "", err
-			}
-
-			doubleStack.Push(ret)
-		} else if value, ok := vars[token]; ok {
-			doubleStack.Push(value)
-		} else {
-			doubleStack.Push(token)
+		default:
+			e.params = append(e.params, token)
 		}
 	}
 
-	return doubleStack.Pop(), nil
+	//log.Info(e.params)
+	return 1, nil
 }

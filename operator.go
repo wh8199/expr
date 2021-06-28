@@ -1,7 +1,9 @@
 package expr
 
 import (
+	"errors"
 	"fmt"
+	"math"
 	"strconv"
 )
 
@@ -25,150 +27,146 @@ const (
 	notEquals       = 5
 )
 
-var ops = map[string]Operator{
-	"**": &PlusOperator{
-		priority: power,
-	},
-	"*": &MultiplyOperator{
-		priority: multiply,
-	},
-	"/": &DivideOperator{
-		priority: divide,
-	},
-	"%": &RemainderOperator{
-		priority: remainder,
-	},
-	"+": &PlusOperator{
-		priority: plus,
-	},
-	"-": &MinusOperator{
-		priority: minus,
-	},
-	"<<": &ShiftLeftOperator{
-		priority: shl,
-	},
-	">>": &ShiftRightOperator{
-		priority: shr,
-	},
-	"<": &LessOperator{
-		priority: lessThan,
-	},
-	"<=": &LessThanOperator{
-		priority: lessOrEquals,
-	},
-	">": &MoreOperator{
-		priority: greaterThan,
-	},
-	">=": &MoreThanOperator{
-		priority: greaterOrEquals,
-	},
-	"==": &EqualOperator{
-		priority: equals,
-	},
-	"!=": &NotEqualOperator{
-		priority: notEquals,
-	},
-	//"&&": logicalAnd, "||": logicalOr,
-}
-
 var (
-	LackParamError = fmt.Errorf("Lack of params")
-	WrongParamType = fmt.Errorf("The type of param is not correct")
-	DivideZero     = fmt.Errorf("Divide zero")
+	NotFloat64Error = errors.New("param is not number")
+	LackParamError  = fmt.Errorf("lack of params")
+	WrongParamType  = fmt.Errorf("the type of param is not correct")
+	DivideZero      = fmt.Errorf("divide zero")
 )
 
 type Operator interface {
 	GetPriority() int
-	Cal(value ...string) (string, error)
+	Cal(p1, p2 float64) (float64, error)
+}
+
+type baseOperator struct {
+	priority int
+}
+
+func (b baseOperator) GetPriority() int {
+	return b.priority
+}
+
+var ops = map[string]Operator{
+	/*
+		"**": &PowerOperator{
+			baseOperator{
+				priority: power,
+			},
+		},*/
+	"*": &MultiplyOperator{
+		baseOperator{
+			priority: multiply,
+		},
+	},
+	/*
+		"/": &DivideOperator{
+			baseOperator{
+				priority: divide,
+			},
+		},
+		"%": &RemainderOperator{
+			baseOperator{
+				priority: remainder,
+			},
+		},*/
+
+	"+": &PlusOperator{
+		baseOperator{
+			priority: plus,
+		},
+	},
+	/*
+		"-": &MinusOperator{
+			baseOperator{
+				priority: minus,
+			},
+		},
+		"<<": &ShiftLeftOperator{
+			baseOperator{
+				priority: shl,
+			},
+		},
+		">>": &ShiftRightOperator{
+			baseOperator{
+				priority: shr,
+			},
+		},
+		"<": &LessOperator{
+			baseOperator{
+				priority: lessThan,
+			},
+		},
+		"<=": &LessThanOperator{
+			baseOperator{
+				priority: lessOrEquals,
+			},
+		},
+		">": &MoreOperator{
+			baseOperator{
+				priority: greaterThan,
+			},
+		},
+		">=": &MoreThanOperator{
+			baseOperator{
+				priority: greaterOrEquals,
+			},
+		},
+		"==": &EqualOperator{
+			baseOperator{
+				priority: equals,
+			},
+		},
+		"!=": &NotEqualOperator{
+			baseOperator{
+				priority: notEquals,
+			},
+		},*/
 }
 
 type PlusOperator struct {
-	priority int
+	baseOperator
 }
 
-func (p PlusOperator) GetPriority() int {
-	return p.priority
-}
-
-func (p PlusOperator) Cal(value ...string) (string, error) {
-	if len(value) != 2 {
-		return "", LackParamError
-	}
-
-	param, err := strconv.ParseFloat(value[0], 64)
-	if err != nil {
-		return "", err
-	}
-
-	param1, err := strconv.ParseFloat(value[1], 64)
-	if err != nil {
-		return "", err
-	}
-
-	return strconv.FormatFloat(param+param1, 'g', -1, 64), nil
+func (p *PlusOperator) Cal(p1, p2 float64) (float64, error) {
+	return p1 + p2, nil
 }
 
 type MinusOperator struct {
-	priority int
+	baseOperator
 }
 
-func (p MinusOperator) GetPriority() int {
-	return p.priority
-}
-
-func (p MinusOperator) Cal(value ...string) (string, error) {
+func (p MinusOperator) Cal(value ...interface{}) (interface{}, error) {
 	if len(value) != 2 {
 		return "", LackParamError
 	}
 
-	param, err := strconv.ParseFloat(value[0], 64)
-	if err != nil {
-		return "", err
+	param, ok := value[0].(float64)
+	if !ok {
+		return "", NotFloat64Error
 	}
 
-	param1, err := strconv.ParseFloat(value[1], 64)
-	if err != nil {
-		return "", err
+	param1, ok := value[1].(float64)
+	if !ok {
+		return "", NotFloat64Error
 	}
 
 	return strconv.FormatFloat(param1-param, 'g', -1, 64), nil
 }
 
 type MultiplyOperator struct {
-	priority int
+	baseOperator
 }
 
-func (p MultiplyOperator) GetPriority() int {
-	return p.priority
-}
-
-func (p MultiplyOperator) Cal(value ...string) (string, error) {
-	if len(value) != 2 {
-		return "", LackParamError
-	}
-
-	param, err := strconv.ParseFloat(value[0], 64)
-	if err != nil {
-		return "", err
-	}
-
-	param1, err := strconv.ParseFloat(value[1], 64)
-	if err != nil {
-		return "", err
-	}
-
-	return strconv.FormatFloat(param*param1, 'g', -1, 64), nil
+func (p *MultiplyOperator) Cal(p1, p2 float64) (float64, error) {
+	return p1 * p2, nil
 }
 
 type DivideOperator struct {
-	priority int
+	baseOperator
 }
 
-func (p DivideOperator) GetPriority() int {
-	return p.priority
-}
-
-func (p DivideOperator) Cal(value ...string) (string, error) {
+func (p DivideOperator) Cal(value ...interface{}) (interface{}, error) {
 	if len(value) != 2 {
 		return "", LackParamError
 	}
@@ -177,28 +175,24 @@ func (p DivideOperator) Cal(value ...string) (string, error) {
 		return "", DivideZero
 	}
 
-	param, err := strconv.ParseFloat(value[0], 64)
-	if err != nil {
-		return "", err
+	param, ok := value[0].(float64)
+	if !ok {
+		return "", NotFloat64Error
 	}
 
-	param1, err := strconv.ParseFloat(value[1], 64)
-	if err != nil {
-		return "", err
+	param1, ok := value[1].(float64)
+	if !ok {
+		return "", NotFloat64Error
 	}
 
 	return strconv.FormatFloat(param1/param, 'g', -1, 64), nil
 }
 
 type RemainderOperator struct {
-	priority int
+	baseOperator
 }
 
-func (p RemainderOperator) GetPriority() int {
-	return p.priority
-}
-
-func (p RemainderOperator) Cal(value ...string) (string, error) {
+func (p RemainderOperator) Cal(value ...interface{}) (interface{}, error) {
 	if len(value) != 2 {
 		return "", LackParamError
 	}
@@ -207,287 +201,245 @@ func (p RemainderOperator) Cal(value ...string) (string, error) {
 		return "", DivideZero
 	}
 
-	param, err := strconv.ParseUint(value[0], 10, 64)
-	if err != nil {
-		return "", err
+	param, ok := value[0].(int64)
+	if !ok {
+		return "", NotFloat64Error
 	}
 
-	param1, err := strconv.ParseUint(value[1], 10, 64)
-	if err != nil {
-		return "", err
+	param1, ok := value[1].(int64)
+	if !ok {
+		return "", NotFloat64Error
 	}
 
 	ret := param1 % param
-	return strconv.FormatUint(ret, 10), nil
+	return strconv.FormatInt(ret, 10), nil
 }
 
 type PowerOperator struct {
-	priority int
+	baseOperator
 }
 
-func (p PowerOperator) GetPriority() int {
-	return p.priority
-}
-
-func (p PowerOperator) Cal(value ...string) (string, error) {
+func (p PowerOperator) Cal(value ...interface{}) (interface{}, error) {
 	if len(value) != 2 {
 		return "", LackParamError
 	}
 
-	param1, err := strconv.ParseFloat(value[0], 64)
-	if err != nil {
-		return "", err
+	param, ok := value[0].(float64)
+	if !ok {
+		return "", NotFloat64Error
 	}
 
-	param, err := strconv.ParseUint(value[1], 10, 64)
-	if err != nil {
-		return "", err
+	param1, ok := value[1].(float64)
+	if !ok {
+		return "", NotFloat64Error
 	}
 
-	var ret float64 = 1
-	for i := 0; i < int(param); i++ {
-		ret = param1 * ret
-	}
-
-	return strconv.FormatFloat(ret, 'g', -1, 64), nil
+	return math.Pow(param, param1), nil
 }
 
 type ShiftLeftOperator struct {
-	priority int
+	baseOperator
 }
 
-func (s ShiftLeftOperator) GetPriority() int {
-	return s.priority
-}
-
-func (s ShiftLeftOperator) Cal(value ...string) (string, error) {
+func (s ShiftLeftOperator) Cal(value ...interface{}) (interface{}, error) {
 	if len(value) != 2 {
 		return "", LackParamError
 	}
 
-	param1, err := strconv.ParseFloat(value[0], 64)
-	if err != nil {
-		return "", err
+	param, ok := value[0].(float64)
+	if !ok {
+		return "", NotFloat64Error
 	}
 
-	param, err := strconv.ParseUint(value[1], 10, 64)
-	if err != nil {
-		return "", err
+	param1, ok := value[1].(float64)
+	if !ok {
+		return "", NotFloat64Error
 	}
 
-	for i := 0; i < int(param); i++ {
-		param1 = param1 * 2
+	for i := 0; i < int(param1); i++ {
+		param = param * 2
 	}
 
-	return strconv.FormatFloat(param1, 'g', -1, 64), nil
+	return strconv.FormatFloat(param, 'g', -1, 64), nil
 }
 
 type ShiftRightOperator struct {
-	priority int
+	baseOperator
 }
 
-func (s ShiftRightOperator) GetPriority() int {
-	return s.priority
-}
-
-func (s ShiftRightOperator) Cal(value ...string) (string, error) {
+func (s ShiftRightOperator) Cal(value ...interface{}) (interface{}, error) {
 	if len(value) != 2 {
 		return "", LackParamError
 	}
 
-	param1, err := strconv.ParseFloat(value[0], 64)
-	if err != nil {
-		return "", err
+	param, ok := value[0].(float64)
+	if !ok {
+		return "", NotFloat64Error
 	}
 
-	param, err := strconv.ParseUint(value[1], 10, 64)
-	if err != nil {
-		return "", err
+	param1, ok := value[1].(uint64)
+	if !ok {
+		return "", NotFloat64Error
+	}
+	for i := 0; i < int(param1); i++ {
+		param = param / 2
 	}
 
-	for i := 0; i < int(param); i++ {
-		param1 = param1 / 2
-	}
-
-	return strconv.FormatFloat(param1, 'g', -1, 64), nil
+	return strconv.FormatFloat(param, 'g', -1, 64), nil
 }
 
 type LessOperator struct {
-	priority int
+	baseOperator
 }
 
-func (s LessOperator) GetPriority() int {
-	return s.priority
-}
-
-func (s LessOperator) Cal(value ...string) (string, error) {
+func (s LessOperator) Cal(value ...interface{}) (interface{}, error) {
 	if len(value) != 2 {
 		return "", LackParamError
 	}
 
-	param1, err := strconv.ParseFloat(value[0], 64)
-	if err != nil {
-		return "", err
+	param, ok := value[0].(float64)
+	if !ok {
+		return "", NotFloat64Error
 	}
 
-	param, err := strconv.ParseFloat(value[1], 64)
-	if err != nil {
-		return "", err
+	param1, ok := value[1].(float64)
+	if !ok {
+		return "", NotFloat64Error
 	}
 
 	if param > param1 {
-		return "1", nil
+		return 1, nil
 	} else {
-		return "0", nil
+		return 0, nil
 	}
 }
 
 type LessThanOperator struct {
-	priority int
+	baseOperator
 }
 
-func (s LessThanOperator) GetPriority() int {
-	return s.priority
-}
-
-func (s LessThanOperator) Cal(value ...string) (string, error) {
+func (s LessThanOperator) Cal(value ...interface{}) (interface{}, error) {
 	if len(value) != 2 {
 		return "", LackParamError
 	}
 
-	param1, err := strconv.ParseFloat(value[0], 64)
-	if err != nil {
-		return "", err
+	param, ok := value[0].(float64)
+	if !ok {
+		return "", NotFloat64Error
 	}
 
-	param, err := strconv.ParseFloat(value[1], 64)
-	if err != nil {
-		return "", err
+	param1, ok := value[1].(float64)
+	if !ok {
+		return "", NotFloat64Error
 	}
 
 	if param >= param1 {
-		return "1", nil
+		return 1, nil
 	} else {
-		return "0", nil
+		return 0, nil
 	}
 }
 
 type MoreOperator struct {
-	priority int
+	baseOperator
 }
 
-func (s MoreOperator) GetPriority() int {
-	return s.priority
-}
-
-func (s MoreOperator) Cal(value ...string) (string, error) {
+func (s MoreOperator) Cal(value ...interface{}) (interface{}, error) {
 	if len(value) != 2 {
 		return "", LackParamError
 	}
 
-	param1, err := strconv.ParseFloat(value[0], 64)
-	if err != nil {
-		return "", err
+	param, ok := value[0].(float64)
+	if !ok {
+		return "", NotFloat64Error
 	}
 
-	param, err := strconv.ParseFloat(value[1], 64)
-	if err != nil {
-		return "", err
+	param1, ok := value[1].(float64)
+	if !ok {
+		return "", NotFloat64Error
 	}
 
 	if param < param1 {
-		return "1", nil
+		return 1, nil
 	} else {
-		return "0", nil
+		return 0, nil
 	}
 }
 
 type MoreThanOperator struct {
-	priority int
+	baseOperator
 }
 
-func (s MoreThanOperator) GetPriority() int {
-	return s.priority
-}
-
-func (s MoreThanOperator) Cal(value ...string) (string, error) {
+func (s MoreThanOperator) Cal(value ...interface{}) (interface{}, error) {
 	if len(value) != 2 {
 		return "", LackParamError
 	}
 
-	param1, err := strconv.ParseFloat(value[0], 64)
-	if err != nil {
-		return "", err
+	param, ok := value[0].(float64)
+	if !ok {
+		return "", NotFloat64Error
 	}
 
-	param, err := strconv.ParseFloat(value[1], 64)
-	if err != nil {
-		return "", err
+	param1, ok := value[1].(float64)
+	if !ok {
+		return "", NotFloat64Error
 	}
 
-	if param <= param1 {
-		return "1", nil
+	if param < param1 {
+		return 1, nil
 	} else {
-		return "0", nil
+		return 0, nil
 	}
 }
 
 type EqualOperator struct {
-	priority int
+	baseOperator
 }
 
-func (s EqualOperator) GetPriority() int {
-	return s.priority
-}
-
-func (s EqualOperator) Cal(value ...string) (string, error) {
+func (s EqualOperator) Cal(value ...interface{}) (interface{}, error) {
 	if len(value) != 2 {
 		return "", LackParamError
 	}
 
-	param1, err := strconv.ParseFloat(value[0], 64)
-	if err != nil {
-		return "", err
+	param, ok := value[0].(float64)
+	if !ok {
+		return "", NotFloat64Error
 	}
 
-	param, err := strconv.ParseFloat(value[1], 64)
-	if err != nil {
-		return "", err
+	param1, ok := value[1].(float64)
+	if !ok {
+		return "", NotFloat64Error
 	}
 
 	if param == param1 {
-		return "1", nil
+		return 1, nil
 	} else {
-		return "0", nil
+		return 0, nil
 	}
 }
 
 type NotEqualOperator struct {
-	priority int
+	baseOperator
 }
 
-func (s NotEqualOperator) GetPriority() int {
-	return s.priority
-}
-
-func (s NotEqualOperator) Cal(value ...string) (string, error) {
+func (s NotEqualOperator) Cal(value ...interface{}) (interface{}, error) {
 	if len(value) != 2 {
 		return "", LackParamError
 	}
 
-	param1, err := strconv.ParseFloat(value[0], 64)
-	if err != nil {
-		return "", err
+	param, ok := value[0].(float64)
+	if !ok {
+		return "", NotFloat64Error
 	}
 
-	param, err := strconv.ParseFloat(value[1], 64)
-	if err != nil {
-		return "", err
+	param1, ok := value[1].(float64)
+	if !ok {
+		return "", NotFloat64Error
 	}
 
-	if param != param1 {
-		return "1", nil
+	if param == param1 {
+		return 1, nil
 	} else {
-		return "0", nil
+		return 0, nil
 	}
 }

@@ -1,21 +1,19 @@
 package expr
 
-import "testing"
+import (
+	"testing"
+
+	"gopkg.in/Knetic/govaluate.v3"
+)
 
 func TestParse(t *testing.T) {
-	expr, err := Compile("2 ** 2 > 3")
+	expr, err := Compile("1+2+2 * 10+(1+2) * 3")
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
-	t.Log(expr)
-
-	ret, err := Run(expr, map[string]string{
-		"a": "2",
-		"b": "1",
-		"c": "2",
-	})
+	ret, err := expr.Run(nil)
 	if err != nil {
 		t.Error(err)
 		return
@@ -24,19 +22,40 @@ func TestParse(t *testing.T) {
 	t.Log(ret)
 }
 
+func TestGoevel(t *testing.T) {
+	expString := `1 << 2.1+2`
+	expression, err := govaluate.NewEvaluableExpression(expString)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	t.Log(expression.Evaluate(nil))
+}
+
 func BenchmarkRun(b *testing.B) {
+	expr, err := Compile("1+2+2 * 10+(1+2) * 3")
+	if err != nil {
+		b.Error(err)
+		return
+	}
 
 	b.ResetTimer()
-
 	for i := 0; i < b.N; i++ {
-		expr, err := Compile("1+2")
-		if err != nil {
-			b.Error(err)
-			return
-		}
+		expr.Run(nil)
+	}
+}
 
-		Run(expr, map[string]string{
-			"aa": "1",
-		})
+func BenchmarkGoevel(b *testing.B) {
+	expString := `1+2+2 * 10+(1+2) * 3`
+	expression, err := govaluate.NewEvaluableExpression(expString)
+	if err != nil {
+		b.Error(err)
+		return
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		expression.Evaluate(nil)
 	}
 }
