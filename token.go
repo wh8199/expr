@@ -2,6 +2,7 @@ package expr
 
 import (
 	"log"
+	"strconv"
 	"unicode"
 )
 
@@ -44,31 +45,50 @@ func Tokenize(input []rune) []Token {
 			tokens = append(tokens, Token{
 				TokenType: EofToken,
 			})
+			index++
 			return tokens
 		case unicode.IsSpace(input[index]):
 			index++
 			continue
 		case unicode.IsNumber(input[index]):
+			begin := index
+
+			for ; index < len(input); index++ {
+				if unicode.IsNumber(input[index]) || input[index] == '.' {
+				} else {
+					break
+				}
+			}
+
+			number, err := strconv.ParseFloat(string(input[begin:index]), 64)
+			if err != nil {
+				log.Panic(err)
+			}
+
 			tokens = append(tokens, Token{
 				TokenType:  NumberToken,
-				DoubleData: float64(input[index] - '0'),
+				DoubleData: number,
 			})
+
 		case input[index] == '+' || input[index] == '-' || input[index] == '*' || input[index] == '/' || input[index] == '%':
 			tokens = append(tokens, Token{
 				TokenType:  OperatorToken,
 				StringData: string(input[index]),
 			})
+			index++
 		case input[index] == '(':
 			tokens = append(tokens, Token{
 				TokenType: LeftBracket,
 			})
+			index++
 		case input[index] == ')':
 			tokens = append(tokens, Token{
 				TokenType: RightBracket,
 			})
+			index++
+		default:
+			index++
 		}
-
-		index++
 	}
 }
 
