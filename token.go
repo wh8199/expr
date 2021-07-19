@@ -1,162 +1,140 @@
 package expr
 
 import (
-	"fmt"
 	"unicode"
+
+	"github.com/wh8199/log"
 )
+
+/*
+	exp -> term { addop term }
+	term -> factor { mulop factor }
+	factor -> number | (+|-)number
+	addop -> + | -
+	mulop -> * | / | %
+*/
 
 const (
-	tokNumber = 1 << iota
-	tokWord
-	tokOp
-	tokOpen
-	tokClose
+	NumberToken = iota + 1
+	OperatorToken
+	EofToken
 )
 
-func tokenize(input []rune) (tokens []string, functionParams map[string][]interface{}, err error) {
-	pos := 0
-	begin := 0
+type Token struct {
+	TokenType  int
+	StringData string
+	DoubleData float64
+}
 
-	functionParams = map[string][]interface{}{}
+func (t *Token) IsAddOp() bool {
+	return t.TokenType == OperatorToken && (t.StringData == "+" || t.StringData == "-")
+}
 
-	expected := tokOpen | tokNumber | tokWord
-	for pos < len(input) {
-		c := input[pos]
-		if unicode.IsSpace(c) {
-			pos++
-			continue
-		}
+func (t *Token) IsMulOp() bool {
+	return t.TokenType == OperatorToken && (t.StringData == "*" || t.StringData == "/")
+}
 
-		begin = pos
-
+func Tokenize(input []rune) []Token {
+	tokens := []Token{}
+	index := 0
+	for {
 		switch {
-		case unicode.IsNumber(c):
-			if expected&tokNumber == 0 {
-				return nil, nil, ErrUnexpectedNumber
-			}
-
-			expected = tokOp | tokClose
-			for (c == '.' || unicode.IsNumber(c)) && pos < len(input) {
-				pos++
-				if pos >= len(input) {
-					break
-				}
-
-				c = input[pos]
-			}
-		case unicode.IsLetter(c):
-			if expected&tokWord == 0 {
-				return nil, nil, ErrUnexpectedIdentifier
-			}
-
-			expected = tokOp | tokOpen | tokClose
-			for (unicode.IsLetter(c) || unicode.IsNumber(c) || c == '_') && pos < len(input) {
-				pos++
-
-				if pos >= len(input) {
-					break
-				}
-
-				c = input[pos]
-			}
-
-			if pos < len(input) && input[pos] == '(' {
-				funcionName := string(input[begin:pos])
-				pos++
-				params := []interface{}{}
-				// end of a function
-				if pos != ')' {
-					paramBegin := pos
-					for pos < len(input) {
-						if input[pos] == ',' {
-							params = append(params, string(input[paramBegin:pos]))
-							paramBegin = pos + 1
-						} else if input[pos] == ')' {
-							params = append(params, string(input[paramBegin:pos]))
-							pos++
-							break
-						}
-
-						pos++
-						if pos > len(input) {
-							return nil, nil, fmt.Errorf("EOF")
-						}
-					}
-				}
-
-				if functions[funcionName] == nil {
-					return nil, nil, fmt.Errorf("undefined function '%s'", funcionName)
-				}
-
-				tokens = append(tokens, funcionName)
-				functionParams[funcionName] = params
-				continue
-			}
-		case c == '@':
-			if expected&tokWord == 0 {
-				return nil, nil, ErrUnexpectedIdentifier
-			}
-
-			if pos+2 >= len(input) {
-				return nil, nil, ErrUnexpectedIdentifier
-			}
-
-			if input[pos+1] != '.' {
-				return nil, nil, ErrUnexpectedIdentifier
-			}
-
-			c = input[pos+2]
-			pos = pos + 2
-
-			expected = tokOp | tokOpen | tokClose
-			for (unicode.IsLetter(c) || unicode.IsNumber(c) || c == '_') && pos < len(input) {
-				pos++
-				if pos >= len(input) {
-					break
-				}
-				c = input[pos]
-			}
-		case c == '(' || c == ')':
-			pos++
-			if c == '(' && (expected&tokOpen) != 0 {
-				expected = tokNumber | tokWord | tokOpen | tokClose
-			} else if c == ')' && (expected&tokClose) != 0 {
-				expected = tokOp | tokClose
-			} else {
-				return nil, nil, ErrParen
-			}
-		default:
-			if expected&tokOp == 0 {
-				if c != '-' && c != '^' && c != '!' {
-					return nil, nil, ErrOperandMissing
-				}
-				pos++
-			} else {
-				lastOp := string(input[begin:pos])
-				for !unicode.IsLetter(c) && !unicode.IsNumber(c) && !unicode.IsSpace(c) &&
-					c != '_' && c != '(' && c != ')' && pos < len(input) {
-
-					if _, ok := ops[string(input[begin:pos])+string(input[pos])]; ok {
-						lastOp = lastOp + string(input[pos])
-					} else {
-						break
-					}
-
-					pos++
-					if pos >= len(input) {
-						break
-					}
-
-					c = input[pos]
-				}
-
-				if lastOp == "" {
-					return nil, nil, ErrBadOp
-				}
-			}
-			expected = tokNumber | tokWord | tokOpen
+		case index >= len(input):
+			tokens = append(tokens, Token{
+				TokenType: EofToken,
+			})
+			return tokens
+		case unicode.IsNumber(input[index]):
+			tokens = append(tokens, Token{
+				TokenType:  NumberToken,
+				DoubleData: float64(input[index] - '0'),
+			})
+		case input[index] == '+' || input[index] == '-' || input[index] == '*' || input[index] == '/' || input[index] == '%':
+			tokens = append(tokens, Token{
+				TokenType:  OperatorToken,
+				StringData: string(input[index]),
+			})
 		}
-		tokens = append(tokens, string(input[begin:pos]))
+
+		index++
 	}
-	return tokens, functionParams, nil
+}
+
+type Expression struct {
+	Input  string
+	Tokens []Token
+	Index  int
+}
+
+func NewExpression(input string) *Expression {
+	return &Expression{
+		Input: input,
+		Index: 0,
+	}
+}
+
+func (e *Expression) Eval() float64 {
+	if len(e.Input) == 0 {
+		return 0
+	}
+
+	return e.expr()
+}
+
+func (e *Expression) Tokenize() {
+	e.Tokens = Tokenize([]rune(e.Input))
+}
+
+func (e *Expression) Next() bool {
+	e.Index++
+	return e.Index < len(e.Tokens)
+}
+
+func (e *Expression) expr() float64 {
+	result := e.term()
+
+	for e.Tokens[e.Index].IsAddOp() {
+		oper := e.Tokens[e.Index].StringData
+		if oper == "+" {
+			e.Index++
+			result += e.term()
+		} else if oper == "-" {
+			e.Index++
+			result -= e.term()
+		} else {
+			break
+		}
+	}
+
+	return result
+}
+
+func (e *Expression) factory() float64 {
+	result := e.Tokens[e.Index].DoubleData
+	e.Index++
+	return result
+}
+
+func (e *Expression) term() float64 {
+	result := e.factory()
+
+	for e.Tokens[e.Index].IsMulOp() {
+		oper := e.Tokens[e.Index].StringData
+		if oper == "*" {
+			e.Index++
+			result *= e.factory()
+		} else if oper == "/" {
+			e.Index++
+			result = result / e.factory()
+		} else if oper == "%" {
+			e.Index++
+			log.Info(result)
+			log.Info(e.factory())
+			result = float64(int64(result) % int64(e.factory()))
+		} else {
+			break
+		}
+	}
+
+	return result
 }
