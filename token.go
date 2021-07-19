@@ -20,6 +20,7 @@ const (
 	EofToken
 	LeftBracket
 	RightBracket
+	Variable
 )
 
 type Token struct {
@@ -86,6 +87,20 @@ func Tokenize(input []rune) []Token {
 				TokenType: RightBracket,
 			})
 			index++
+		case unicode.IsLetter(input[index]):
+			begin := index
+
+			for ; index < len(input); index++ {
+				if unicode.IsLetter(input[index]) {
+				} else {
+					break
+				}
+			}
+
+			tokens = append(tokens, Token{
+				TokenType:  Variable,
+				StringData: string(input[begin:index]),
+			})
 		default:
 			index++
 		}
@@ -93,9 +108,10 @@ func Tokenize(input []rune) []Token {
 }
 
 type Expression struct {
-	Input  string
-	Tokens []Token
-	Index  int
+	Input     string
+	Tokens    []Token
+	Index     int
+	Variables map[string]float64
 }
 
 func NewExpression(input string) *Expression {
@@ -152,6 +168,8 @@ func (e *Expression) factory() float64 {
 	} else if e.Tokens[e.Index].StringData == "+" {
 		e.Index++
 		result = e.Tokens[e.Index].DoubleData
+	} else if e.Tokens[e.Index].TokenType == Variable {
+		result = e.Variables[e.Tokens[e.Index].StringData]
 	} else {
 		result = e.Tokens[e.Index].DoubleData
 	}

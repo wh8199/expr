@@ -9,8 +9,12 @@ func TestTokenize(t *testing.T) {
 }
 
 func TestEval(t *testing.T) {
-	expression := NewExpression("1.1+10*2.2")
-
+	expression := NewExpression("a+b*c")
+	expression.Variables = map[string]float64{
+		"a": 1,
+		"b": 2,
+		"c": 12,
+	}
 	expression.Tokenize()
 	t.Log(expression.Eval())
 }
