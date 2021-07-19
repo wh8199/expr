@@ -1,13 +1,14 @@
 package expr
 
 import (
+	"log"
 	"unicode"
 )
 
 /*
 	exp -> term { addop term }
 	term -> factor { mulop factor }
-	factor -> number | (+|-)number
+	factor -> number | (+|-)number | (exp)
 	addop -> + | -
 	mulop -> * | / | %
 */
@@ -16,6 +17,8 @@ const (
 	NumberToken = iota + 1
 	OperatorToken
 	EofToken
+	LeftBracket
+	RightBracket
 )
 
 type Token struct {
@@ -52,6 +55,14 @@ func Tokenize(input []rune) []Token {
 				TokenType:  OperatorToken,
 				StringData: string(input[index]),
 			})
+		case input[index] == '(':
+			tokens = append(tokens, Token{
+				TokenType: LeftBracket,
+			})
+		case input[index] == ')':
+			tokens = append(tokens, Token{
+				TokenType: RightBracket,
+			})
 		}
 
 		index++
@@ -76,6 +87,7 @@ func (e *Expression) Eval() float64 {
 		return 0
 	}
 
+	e.Index = 0
 	return e.expr()
 }
 
@@ -105,7 +117,13 @@ func (e *Expression) expr() float64 {
 func (e *Expression) factory() float64 {
 	var result float64
 
-	if e.Tokens[e.Index].StringData == "-" {
+	if e.Tokens[e.Index].TokenType == LeftBracket {
+		e.Index++
+		result = e.expr()
+		if e.Tokens[e.Index].TokenType != RightBracket {
+			log.Fatal("expect right bracket")
+		}
+	} else if e.Tokens[e.Index].StringData == "-" {
 		e.Index++
 		result = -(e.Tokens[e.Index].DoubleData)
 	} else if e.Tokens[e.Index].StringData == "+" {
@@ -114,7 +132,6 @@ func (e *Expression) factory() float64 {
 	} else {
 		result = e.Tokens[e.Index].DoubleData
 	}
-
 	e.Index++
 
 	return result
