@@ -103,8 +103,20 @@ func (e *Expression) expr() float64 {
 }
 
 func (e *Expression) factory() float64 {
-	result := e.Tokens[e.Index].DoubleData
+	var result float64
+
+	if e.Tokens[e.Index].StringData == "-" {
+		e.Index++
+		result = -(e.Tokens[e.Index].DoubleData)
+	} else if e.Tokens[e.Index].StringData == "+" {
+		e.Index++
+		result = e.Tokens[e.Index].DoubleData
+	} else {
+		result = e.Tokens[e.Index].DoubleData
+	}
+
 	e.Index++
+
 	return result
 }
 
