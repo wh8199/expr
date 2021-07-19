@@ -45,6 +45,9 @@ func Tokenize(input []rune) []Token {
 				TokenType: EofToken,
 			})
 			return tokens
+		case unicode.IsSpace(input[index]):
+			index++
+			continue
 		case unicode.IsNumber(input[index]):
 			tokens = append(tokens, Token{
 				TokenType:  NumberToken,

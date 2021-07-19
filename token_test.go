@@ -9,7 +9,7 @@ func TestTokenize(t *testing.T) {
 }
 
 func TestEval(t *testing.T) {
-	expression := NewExpression("2*(1+4+2")
+	expression := NewExpression("2 * ( 1 + 4) + 2")
 
 	expression.Tokenize()
 	t.Log(expression.Eval())
