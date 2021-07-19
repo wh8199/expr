@@ -2,8 +2,6 @@ package expr
 
 import (
 	"unicode"
-
-	"github.com/wh8199/log"
 )
 
 /*
@@ -31,7 +29,7 @@ func (t *Token) IsAddOp() bool {
 }
 
 func (t *Token) IsMulOp() bool {
-	return t.TokenType == OperatorToken && (t.StringData == "*" || t.StringData == "/")
+	return t.TokenType == OperatorToken && (t.StringData == "*" || t.StringData == "/" || t.StringData == "%")
 }
 
 func Tokenize(input []rune) []Token {
@@ -85,11 +83,6 @@ func (e *Expression) Tokenize() {
 	e.Tokens = Tokenize([]rune(e.Input))
 }
 
-func (e *Expression) Next() bool {
-	e.Index++
-	return e.Index < len(e.Tokens)
-}
-
 func (e *Expression) expr() float64 {
 	result := e.term()
 
@@ -128,8 +121,6 @@ func (e *Expression) term() float64 {
 			result = result / e.factory()
 		} else if oper == "%" {
 			e.Index++
-			log.Info(result)
-			log.Info(e.factory())
 			result = float64(int64(result) % int64(e.factory()))
 		} else {
 			break

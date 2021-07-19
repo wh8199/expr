@@ -9,7 +9,7 @@ func TestTokenize(t *testing.T) {
 }
 
 func TestEval(t *testing.T) {
-	expression := NewExpression("1%2")
+	expression := NewExpression("3%2+1")
 
 	expression.Tokenize()
 	t.Log(expression.Eval())
