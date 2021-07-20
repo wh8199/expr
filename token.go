@@ -118,13 +118,15 @@ type Expression struct {
 	Tokens    []Token
 	Index     int
 	Variables map[string]float64
-	Function  map[string]func(params ...interface{}) (interface{}, error)
+	Function  map[string]func(params ...float64) (float64, error)
+	Params    []float64
 }
 
 func NewExpression(input string) *Expression {
 	return &Expression{
-		Input: input,
-		Index: 0,
+		Input:  input,
+		Index:  0,
+		Params: []float64{},
 	}
 }
 
@@ -134,6 +136,7 @@ func (e *Expression) Eval() float64 {
 	}
 
 	e.Index = 0
+	e.Params = e.Params[0:0]
 	return e.expr()
 }
 
@@ -162,6 +165,7 @@ func (e *Expression) expr() float64 {
 
 func (e *Expression) factory() float64 {
 	var result float64
+	var err error
 
 	if e.Tokens[e.Index].TokenType == LeftBracket {
 		e.Index++
@@ -184,7 +188,7 @@ func (e *Expression) factory() float64 {
 			}
 			e.Index++
 
-			params := []interface{}{}
+			e.Params = e.Params[:0]
 			for {
 				if e.Tokens[e.Index].TokenType == RightBracket {
 					break
@@ -194,20 +198,17 @@ func (e *Expression) factory() float64 {
 				} else if e.Tokens[e.Index].TokenType == EofToken {
 					log.Fatal("unexpected eof of function")
 				} else {
-					params = append(params, e.expr())
+					e.Params = append(e.Params, e.expr())
 				}
 			}
 
-			result, err := function(params...)
+			result, err = function(e.Params...)
 			if err != nil {
 				log.Fatal(err)
 			}
-
-			return float64(result.(int))
 		}
 
 		result = e.Variables[e.Tokens[e.Index].StringData]
-		return result
 	} else {
 		result = e.Tokens[e.Index].DoubleData
 	}

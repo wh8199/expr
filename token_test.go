@@ -20,14 +20,14 @@ func TestEval(t *testing.T) {
 }
 
 func TestEvalFunction(t *testing.T) {
-	expression := NewExpression("power(1+2,2)")
+	expression := NewExpression("power(1+2,2,a)")
 	expression.Variables = map[string]float64{
 		"a": 1,
 		"b": 2,
 		"c": 12,
 	}
-	expression.Function = map[string]func(params ...interface{}) (interface{}, error){
-		"power": func(params ...interface{}) (interface{}, error) {
+	expression.Function = map[string]func(params ...float64) (float64, error){
+		"power": func(params ...float64) (float64, error) {
 			return 12, nil
 		},
 	}
@@ -39,6 +39,26 @@ func BenchmarkEval(b *testing.B) {
 	expression := NewExpression("1++2--3+4+10")
 	expression.Tokenize()
 
+	for i := 0; i < b.N; i++ {
+		expression.Eval()
+	}
+}
+
+func BenchmarkFuncion(b *testing.B) {
+	expression := NewExpression("power(1+2,2,a,4)")
+	expression.Variables = map[string]float64{
+		"a": 1,
+		"b": 2,
+		"c": 12,
+	}
+	expression.Function = map[string]func(params ...float64) (float64, error){
+		"power": func(params ...float64) (float64, error) {
+			return 12, nil
+		},
+	}
+	expression.Tokenize()
+
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		expression.Eval()
 	}
