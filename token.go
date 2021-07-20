@@ -9,7 +9,7 @@ import (
 /*
 	exp -> term { addop term }
 	term -> factor { mulop factor }
-	factor -> number | (+|-)number | (exp)
+	factor -> number | (+|-)number | (exp) | func(exp {, exp})
 	addop -> + | -
 	mulop -> * | / | %
 */
@@ -21,6 +21,7 @@ const (
 	LeftBracket
 	RightBracket
 	Variable
+	CommaToken
 )
 
 type Token struct {
@@ -101,6 +102,11 @@ func Tokenize(input []rune) []Token {
 				TokenType:  Variable,
 				StringData: string(input[begin:index]),
 			})
+		case input[index] == ',':
+			tokens = append(tokens, Token{
+				TokenType: CommaToken,
+			})
+			index++
 		default:
 			index++
 		}
@@ -112,6 +118,7 @@ type Expression struct {
 	Tokens    []Token
 	Index     int
 	Variables map[string]float64
+	Function  map[string]func(params ...interface{}) (interface{}, error)
 }
 
 func NewExpression(input string) *Expression {
@@ -169,7 +176,38 @@ func (e *Expression) factory() float64 {
 		e.Index++
 		result = e.Tokens[e.Index].DoubleData
 	} else if e.Tokens[e.Index].TokenType == Variable {
+		function := e.Function[e.Tokens[e.Index].StringData]
+		if function != nil {
+			e.Index++
+			if e.Tokens[e.Index].TokenType != LeftBracket {
+				log.Fatal("function need a left bracket")
+			}
+			e.Index++
+
+			params := []interface{}{}
+			for {
+				if e.Tokens[e.Index].TokenType == RightBracket {
+					break
+				} else if e.Tokens[e.Index].TokenType == CommaToken {
+					e.Index++
+					continue
+				} else if e.Tokens[e.Index].TokenType == EofToken {
+					log.Fatal("unexpected eof of function")
+				} else {
+					params = append(params, e.expr())
+				}
+			}
+
+			result, err := function(params...)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			return float64(result.(int))
+		}
+
 		result = e.Variables[e.Tokens[e.Index].StringData]
+		return result
 	} else {
 		result = e.Tokens[e.Index].DoubleData
 	}

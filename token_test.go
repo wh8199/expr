@@ -19,6 +19,22 @@ func TestEval(t *testing.T) {
 	t.Log(expression.Eval())
 }
 
+func TestEvalFunction(t *testing.T) {
+	expression := NewExpression("power(1+2,2)")
+	expression.Variables = map[string]float64{
+		"a": 1,
+		"b": 2,
+		"c": 12,
+	}
+	expression.Function = map[string]func(params ...interface{}) (interface{}, error){
+		"power": func(params ...interface{}) (interface{}, error) {
+			return 12, nil
+		},
+	}
+	expression.Tokenize()
+	t.Log(expression.Eval())
+}
+
 func BenchmarkEval(b *testing.B) {
 	expression := NewExpression("1++2--3+4+10")
 	expression.Tokenize()
